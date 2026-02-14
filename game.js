@@ -1,280 +1,369 @@
-const SPRITE_CONFIG = {
-    frameWidth: 480,      // Width of ONE single frame
-    frameHeight: 690,     // Height of the image 
-    totalFrames: 9,      // Total count
+/* =========================================
+   TURBO TAP RPG - ENHANCED ENGINE
+   ========================================= */
+
+const CONFIG = {
+    frameWidth: 480,
+    totalFrames: 9,
+    baseSpeed: 0.1,
+    drag: 0.94,           // Friction
+    acceleration: 0.6,    // Speed per tap
+    maxVelocity: 4.0,
     
-    baseSpeed: 0.09,       // How fast it loops naturally (0.1 is slow/idle)
-    drag: 0.95,           // Friction (0.95 = slides a bit; 0.90 = stops fast)
-    acceleration: 0.5     // How much speed to add per tap
+    // JUICE SETTINGS
+    comboDecay: 2000,     // ms before combo resets
+    particleCount: 8,     // Particles per tap
+    gravity: 0.8          // Gravity for particles
 };
+
 // --- GAME STATE ---
-let gameState = {
+let state = {
     gold: 0,
     level: 1,
     xp: 0,
     xpToNext: 100,
+    
     combo: 0,
+    maxCombo: 0,
     comboTimer: null,
     
-    // Physics State
+    // Physics
     currentFrame: 0,
     velocity: 0,
-    isInteracting: false
+    
+    // Visuals
+    intensity: 0,         // 0.0 to 1.0 (Calculated based on combo)
+    pulsePhase: 0         // For the rhythmic throb
 };
 
-// --- DOM ELEMENTS ---
-const spriteEl = document.getElementById('action-sprite');
-const wrapperEl = document.querySelector('.sprite-wrapper');
-const goldEl = document.getElementById('gold-display');
-const levelEl = document.getElementById('level-display');
-const xpFillEl = document.getElementById('xp-fill');
-const comboContainer = document.getElementById('combo-container');
-const comboCountEl = document.getElementById('combo-count');
-const fxLayer = document.getElementById('fx-layer');
-const container = document.getElementById('game-container');
+// --- DOM CACHE ---
+const dom = {
+    sprite: document.getElementById('action-sprite'),
+    wrapper: document.querySelector('.sprite-wrapper'),
+    container: document.getElementById('game-container'),
+    fxLayer: document.getElementById('fx-layer'),
+    ui: {
+        gold: document.getElementById('gold-display'),
+        level: document.getElementById('level-display'),
+        xpFill: document.getElementById('xp-fill'),
+        comboContainer: document.getElementById('combo-container'),
+        comboCount: document.getElementById('combo-count'),
+        comboLabel: document.getElementById('combo-label')
+    }
+};
 
-// Set initial sprite size dynamically
-spriteEl.style.width = `${SPRITE_CONFIG.frameWidth}px`;
-spriteEl.style.height = `${SPRITE_CONFIG.frameHeight}px`;
+// Initial Setup
+dom.sprite.style.width = `${CONFIG.frameWidth}px`;
 
+/* =========================================
+   CORE INPUT & LOOP
+   ========================================= */
 
-// --- CORE INTERACTION ---
 function handleTap(e) {
-    // Prevent default browser zooming/scrolling
-    if(e.cancelable) e.preventDefault();
+    if(e.cancelable && e.type === 'touchstart') e.preventDefault();
 
-    // 1. Physics: Add speed to the sprite
-    gameState.velocity += SPRITE_CONFIG.acceleration;
-    // Cap max speed
-    if (gameState.velocity > 3.5) gameState.velocity = 3.5;
+    // 1. Physics Boost
+    state.velocity += CONFIG.acceleration;
+    if (state.velocity > CONFIG.maxVelocity) state.velocity = CONFIG.maxVelocity;
 
-    // 2. Logic: Rewards
-    addRewards(e);
+    // 2. Logic & Rewards
+    processRewards();
 
-    // 3. Visuals: Juice
-    createPulseEffect();
+    // 3. Get Coordinates
+    let x = e.clientX;
+    let y = e.clientY;
     
-    // Get tap coordinates (supports mouse and touch)
-    let x, y;
+    // Mobile Touch Fix
     if (e.type === 'touchstart') {
         x = e.touches[0].clientX;
         y = e.touches[0].clientY;
-    } else {
-        x = e.clientX;
-        y = e.clientY;
-    }
-    
-    // Spawn Effects
-    spawnFloatingText(x, y);
-    spawnComicParticle(x, y);
-}
-
-// --- REWARD SYSTEM ---
-function addRewards(e) {
-    // Combo Logic
-    gameState.combo++;
-    clearTimeout(gameState.comboTimer);
-    
-    // Show Combo UI
-    comboContainer.classList.remove('hidden');
-    comboCountEl.innerText = gameState.combo + "x";
-    
-    // Visual Shake logic for high combos
-    if (gameState.combo > 10 && gameState.combo % 5 === 0) {
-        screenShake();
-        createComicText(); // Spawns "POW!" "WHAM!"
     }
 
-    // Reset combo if no tap for 2 seconds
-    gameState.comboTimer = setTimeout(() => {
-        gameState.combo = 0;
-        comboContainer.classList.add('hidden');
-    }, 1500);
-
-    // Calculate Gold (Base + Combo Multiplier)
-    let addedGold = Math.floor(1 + (gameState.combo * 0.5));
-    gameState.gold += addedGold;
-    
-    // XP Logic
-    gameState.xp += 5;
-    if(gameState.xp >= gameState.xpToNext) {
-        levelUp();
-    }
-
-    updateUI();
+    // 4. Trigger Visuals (The Juice)
+    triggerTapFX(x, y);
 }
 
-function levelUp() {
-    gameState.level++;
-    gameState.xp = 0;
-    gameState.xpToNext = Math.floor(gameState.xpToNext * 1.5);
-    
-    // Level Up FX
-    const levelText = document.createElement('div');
-    levelText.className = 'float-text';
-    levelText.innerText = "LEVEL UP!";
-    levelText.style.color = "#00e5ff";
-    levelText.style.left = "50%";
-    levelText.style.top = "50%";
-    levelText.style.transform = "translate(-50%, -50%)";
-    levelText.style.fontSize = "4rem";
-    fxLayer.appendChild(levelText);
-    setTimeout(() => levelText.remove(), 2000);
-}
-
-function updateUI() {
-    goldEl.innerText = gameState.gold.toLocaleString();
-    levelEl.innerText = gameState.level;
-    
-    let xpPercent = (gameState.xp / gameState.xpToNext) * 100;
-    xpFillEl.style.width = `${xpPercent}%`;
-}
-
-
-// --- PHYSICS ENGINE (Loop) ---
+// The Main Game Loop (60 FPS)
 function gameLoop() {
-    // 1. Apply Friction to the velocity (Slow down the extra speed)
-    gameState.velocity *= SPRITE_CONFIG.drag;
+    // 1. Calculate Intensity (0.0 = Chill, 1.0 = Chaos)
+    // Intensity caps at Combo 50
+    let targetIntensity = Math.min(state.combo, 50) / 50;
+    // Smoothly lerp intensity
+    state.intensity += (targetIntensity - state.intensity) * 0.1;
 
-    // If velocity is super low, just snap to 0 to stop calculation floating points
-    if (gameState.velocity < 0.01) gameState.velocity = 0;
+    // 2. Apply Physics
+    state.velocity *= CONFIG.drag;
+    if (state.velocity < 0.01) state.velocity = 0;
 
-    // 2. Manage Idle vs Active State
-    // If we have speed (tapping), remove the gentle breathing animation
-    if (gameState.velocity > 0.1) {
-        wrapperEl.classList.remove('idle-mode');
-    } else {
-        // If we are stopped, add the gentle breathing animation
-        wrapperEl.classList.add('idle-mode');
-    }
+    // 3. Animation Frames
+    let effectiveSpeed = CONFIG.baseSpeed + state.velocity + (state.intensity * 0.2);
+    state.currentFrame += effectiveSpeed;
+    if (state.currentFrame >= CONFIG.totalFrames) state.currentFrame = 0;
 
-    // 3. Calculate Final Speed
-    // It is now Base Speed (Idle) + Velocity (Tapping)
-    // This ensures it ALWAYS loops, but speeds up when you tap.
-    let currentSpeed = SPRITE_CONFIG.baseSpeed + gameState.velocity;
+    // 4. Render Sprite Sheet
+    let frameIndex = Math.floor(state.currentFrame);
+    let posX = -(frameIndex * CONFIG.frameWidth);
+    dom.sprite.style.backgroundPosition = `${posX}px 0px`;
 
-    // 4. Advance Frames
-    gameState.currentFrame += currentSpeed;
-    
-    // Loop the frames
-    if (gameState.currentFrame >= SPRITE_CONFIG.totalFrames) {
-        gameState.currentFrame = 0;
-    }
-
-    // Calculate Pixel Position
-    let frameIndex = Math.floor(gameState.currentFrame);
-    let posX = -(frameIndex * SPRITE_CONFIG.frameWidth);
-    
-    spriteEl.style.backgroundPosition = `${posX}px 0px`;
-
-    // 5. Visual "Rumble" (Only happen if tapping fast)
-    if (gameState.velocity > 2) {
-        let shake = (Math.random() - 0.5) * 10;
-        // We override the transform, so the 'idle' animation doesn't fight it
-        wrapperEl.style.transform = `rotate(${shake}deg) scale(1.1)`;
-    } else if (gameState.velocity > 0.1) {
-        // Reset shake if slowing down but not yet idle
-        wrapperEl.style.transform = `rotate(0deg) scale(1.0)`;
-    } 
-    // Note: If velocity is < 0.1, the CSS .idle-mode class takes over the transform!
+    // 5. Render "The Throb" & Jiggle
+    applyProceduralAnimation();
 
     requestAnimationFrame(gameLoop);
 }
 
+/* =========================================
+   VISUALS & PROCEDURAL ANIMATION
+   ========================================= */
 
-// --- VISUAL FX ---
+function applyProceduralAnimation() {
+    // A. Rhythmic Pulse (Heartbeat)
+    // Speed of pulse increases with intensity
+    let pulseSpeed = 0.1 + (state.intensity * 0.4);
+    state.pulsePhase += pulseSpeed;
+    
+    // Sine wave for smooth scaling
+    let scaleWave = Math.sin(state.pulsePhase) * (0.05 + (state.intensity * 0.1)); 
+    let baseScale = 0.8 + (state.intensity * 0.3); // Grows bigger with combo
+    
+    let finalScale = baseScale + scaleWave;
 
-function createPulseEffect() {
-    // Remove class to reset animation, then add it back (trick to restart CSS anim)
-    wrapperEl.classList.remove('pulse-anim');
-    void wrapperEl.offsetWidth; // Trigger reflow
-    wrapperEl.classList.add('pulse-anim');
+    // B. Random Jitter (Shaking)
+    // Only shakes if intensity is high
+    let shakeX = 0;
+    let shakeY = 0;
+    let rotation = 0;
+
+    if (state.intensity > 0.1) {
+        let shakePower = state.intensity * 10; // Max 10px shake
+        shakeX = (Math.random() - 0.5) * shakePower;
+        shakeY = (Math.random() - 0.5) * shakePower;
+        rotation = (Math.random() - 0.5) * (state.intensity * 15);
+    }
+
+    // Apply Transform
+    dom.wrapper.style.transform = 
+        `translate(${shakeX}px, ${shakeY}px) ` +
+        `rotate(${rotation}deg) ` +
+        `scale(${finalScale})`;
+
+    // C. Filter Effects (Glow)
+    // Brightness fluctuates with pulse
+    let brightness = 1 + (state.intensity * 0.5) + (Math.sin(state.pulsePhase) * 0.2);
+    dom.wrapper.style.filter = `brightness(${brightness})`;
 }
 
-function screenShake() {
-    container.classList.remove('shake-screen');
-    void container.offsetWidth;
-    container.classList.add('shake-screen');
+function triggerTapFX(x, y) {
+    // 1. Floating Damage Text
+    spawnFloatingText(x, y);
+
+    // 2. Particle Explosion
+    spawnParticles(x, y);
+
+    // 3. Heart Flood (If combo is high)
+    if (state.combo >= 15) {
+        spawnHeart(x, y);
+    }
+
+    // 4. Screen Shake (On critical hits or high combo)
+    if (state.combo > 20 || Math.random() > 0.8) {
+        triggerScreenShake(state.intensity);
+    }
+}
+
+/* =========================================
+   PARTICLE ENGINE
+   ========================================= */
+
+function spawnParticles(x, y) {
+    const colors = ['#fff', '#00e5ff', '#ff0055', '#ffeb3b'];
+    
+    // Scale particle count based on intensity
+    let count = CONFIG.particleCount + Math.floor(state.intensity * 10);
+
+    for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        
+        // Random Physics
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = 5 + Math.random() * 10;
+        const size = 5 + Math.random() * 8;
+        
+        // CSS Setup
+        p.style.position = 'absolute';
+        p.style.left = x + 'px';
+        p.style.top = y + 'px';
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        p.style.borderRadius = '50%';
+        p.style.pointerEvents = 'none';
+        p.style.zIndex = 1000;
+        
+        dom.fxLayer.appendChild(p);
+
+        // Animate
+        let velX = Math.cos(angle) * velocity;
+        let velY = Math.sin(angle) * velocity;
+        let opacity = 1;
+
+        const animateParticle = () => {
+            velY += CONFIG.gravity; // Gravity
+            velX *= 0.95; // Air resistance
+
+            const curX = parseFloat(p.style.left);
+            const curY = parseFloat(p.style.top);
+
+            p.style.left = (curX + velX) + 'px';
+            p.style.top = (curY + velY) + 'px';
+            
+            opacity -= 0.03;
+            p.style.opacity = opacity;
+            p.style.transform = `scale(${opacity})`;
+
+            if (opacity > 0) {
+                requestAnimationFrame(animateParticle);
+            } else {
+                p.remove();
+            }
+        };
+        requestAnimationFrame(animateParticle);
+    }
+}
+
+function spawnHeart(x, y) {
+    const heart = document.createElement('div');
+    heart.innerText = "💖";
+    heart.style.position = 'absolute';
+    heart.style.left = (x - 20 + Math.random() * 40) + 'px';
+    heart.style.top = y + 'px';
+    heart.style.fontSize = (20 + Math.random() * 30) + 'px';
+    heart.style.pointerEvents = 'none';
+    heart.style.zIndex = 1100;
+    heart.style.transition = "all 1s ease-out";
+    
+    dom.fxLayer.appendChild(heart);
+
+    // Float Up Animation
+    setTimeout(() => {
+        heart.style.transform = `translateY(-150px) scale(1.5) rotate(${Math.random()*40-20}deg)`;
+        heart.style.opacity = 0;
+    }, 10);
+
+    setTimeout(() => heart.remove(), 1000);
 }
 
 function spawnFloatingText(x, y) {
     const el = document.createElement('div');
+    
+    // Visual variety based on combo
+    let isCrit = Math.random() > 0.9 || state.combo % 10 === 0;
+    let val = Math.floor(1 + (state.combo * 0.5));
+    
+    el.innerText = isCrit ? `CRIT! +${val*2}` : `+${val}`;
     el.className = 'float-text';
-    el.style.left = `${x}px`;
-    el.style.top = `${y - 50}px`;
-    el.style.color = "gold";
     
-    // Add randomness to position
-    const randX = (Math.random() - 0.5) * 40;
-    el.style.transform = `translateX(${randX}px)`;
-    
-    el.innerText = `+${Math.floor(1 + (gameState.combo * 0.5))}`;
-    
-    fxLayer.appendChild(el);
-    setTimeout(() => el.remove(), 1000);
+    // Style override via JS for randomness
+    el.style.left = x + 'px';
+    el.style.top = (y - 50) + 'px';
+    el.style.fontSize = isCrit ? '3rem' : '2rem';
+    el.style.color = isCrit ? '#ffeb3b' : '#fff';
+    el.style.textShadow = isCrit ? '0px 0px 20px red' : '2px 2px 0 #000';
+    el.style.zIndex = 1200;
+
+    // Random Drift
+    let drift = (Math.random() - 0.5) * 60;
+    el.style.transform = `translateX(${drift}px)`;
+
+    dom.fxLayer.appendChild(el);
+    setTimeout(() => el.remove(), 800);
 }
 
-const COMIC_WORDS = ["POW!", "BAM!", "ZAP!", "BOOM!", "CRITICAL!"];
-function createComicText() {
-    const el = document.createElement('div');
-    el.className = 'float-text';
-    el.innerText = COMIC_WORDS[Math.floor(Math.random() * COMIC_WORDS.length)];
-    
-    // Random position near center
-    const x = (window.innerWidth / 2) + (Math.random() - 0.5) * 200;
-    const y = (window.innerHeight / 2) + (Math.random() - 0.5) * 200;
-    
-    el.style.left = `${x}px`;
-    el.style.top = `${y}px`;
-    el.style.color = Math.random() > 0.5 ? "#ff0055" : "#00e5ff";
-    el.style.fontSize = "3rem";
-    el.style.zIndex = 100;
-    
-    fxLayer.appendChild(el);
-    setTimeout(() => el.remove(), 1000);
+function triggerScreenShake(intensity) {
+    dom.container.style.transform = `translate(${(Math.random()-0.5)*10}px, ${(Math.random()-0.5)*10}px)`;
+    setTimeout(() => {
+        dom.container.style.transform = 'none';
+    }, 50);
 }
 
-function spawnComicParticle(x, y) {
-    // Create 'speed lines' or shapes
-    const colors = ['#ff0055', '#00e5ff', '#ffeb3b'];
-    const el = document.createElement('div');
-    
-    // Random visual properties
-    const size = Math.random() * 20 + 10;
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const angle = Math.random() * 360;
-    
-    el.style.position = 'absolute';
-    el.style.left = `${x}px`;
-    el.style.top = `${y}px`;
-    el.style.width = `${size}px`;
-    el.style.height = `${size}px`;
-    el.style.backgroundColor = color;
-    el.style.clipPath = "polygon(50% 0%, 0% 100%, 100% 100%)"; // Triangle
-    el.style.pointerEvents = 'none';
-    el.style.transform = `rotate(${angle}deg)`;
-    el.style.transition = "all 0.5s ease-out";
-    
-    fxLayer.appendChild(el);
-    
-    // Trigger animation next frame
-    requestAnimationFrame(() => {
-        const moveDist = 100;
-        const rad = angle * (Math.PI / 180);
-        const toX = Math.cos(rad) * moveDist;
-        const toY = Math.sin(rad) * moveDist;
-        
-        el.style.transform = `translate(${toX}px, ${toY}px) rotate(${angle}deg) scale(0)`;
-        el.style.opacity = 0;
-    });
+/* =========================================
+   LOGIC & REWARDS
+   ========================================= */
 
-    setTimeout(() => el.remove(), 500);
+function processRewards() {
+    // 1. Combo Logic
+    state.combo++;
+    if(state.combo > state.maxCombo) state.maxCombo = state.combo;
+    
+    clearTimeout(state.comboTimer);
+    
+    dom.ui.comboContainer.classList.remove('hidden');
+    dom.ui.comboCount.innerText = state.combo;
+    
+    // Changing labels based on combo tier
+    if (state.combo < 10) dom.ui.comboLabel.innerText = "COMBO";
+    else if (state.combo < 30) dom.ui.comboLabel.innerText = "SUPER!";
+    else if (state.combo < 50) {
+        dom.ui.comboLabel.innerText = "HYPER!!";
+        dom.ui.comboLabel.style.color = "#00e5ff";
+    }
+    else {
+        dom.ui.comboLabel.innerText = "ULTIMATE!!!";
+        dom.ui.comboLabel.style.color = "#ff0055";
+    }
+
+    // Reset Timer
+    state.comboTimer = setTimeout(() => {
+        state.combo = 0;
+        dom.ui.comboContainer.classList.add('hidden');
+    }, CONFIG.comboDecay);
+
+    // 2. Gold Calculation
+    let addedGold = Math.floor(1 + (state.combo * 0.5));
+    state.gold += addedGold;
+    dom.ui.gold.innerText = state.gold.toLocaleString();
+
+    // 3. XP Logic
+    state.xp += 10 + Math.floor(state.combo / 5);
+    if(state.xp >= state.xpToNext) levelUp();
+    
+    let xpPct = (state.xp / state.xpToNext) * 100;
+    dom.ui.xpFill.style.width = `${xpPct}%`;
 }
 
-// --- INITIALIZATION ---
-// Listen for inputs
-spriteEl.addEventListener('mousedown', handleTap);
-spriteEl.addEventListener('touchstart', handleTap, {passive: false});
+function levelUp() {
+    state.level++;
+    state.xp = 0;
+    state.xpToNext = Math.floor(state.xpToNext * 1.5);
+    dom.ui.level.innerText = state.level;
 
-// Start the loop
+    // Big visual explosion
+    for(let i=0; i<30; i++) {
+        setTimeout(() => {
+            spawnParticles(window.innerWidth/2, window.innerHeight/2);
+        }, i * 20);
+    }
+    
+    const banner = document.createElement('div');
+    banner.innerText = "LEVEL UP!";
+    banner.style.position = 'absolute';
+    banner.style.top = '40%';
+    banner.style.left = '50%';
+    banner.style.transform = 'translate(-50%, -50%) scale(0)';
+    banner.style.fontSize = '5rem';
+    banner.style.color = '#fff';
+    banner.style.textShadow = '0 0 20px #00e5ff';
+    banner.style.transition = 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    banner.style.zIndex = 2000;
+    
+    dom.fxLayer.appendChild(banner);
+    
+    requestAnimationFrame(() => banner.style.transform = 'translate(-50%, -50%) scale(1)');
+    setTimeout(() => banner.remove(), 2000);
+}
+
+// --- INIT ---
+dom.sprite.addEventListener('mousedown', handleTap);
+dom.sprite.addEventListener('touchstart', handleTap, {passive: false});
+
+// Start loop
 gameLoop();
