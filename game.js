@@ -1,12 +1,13 @@
 const SPRITE_CONFIG = {
     frameWidth: 320,      // Width of ONE single frame
     frameHeight: 468,     // Height of the image 
-    totalFrames: 10,      // Total count (3200px width / 320px frame = 10 frames)
+    totalFrames: 10,      // Total count 
     
-    baseSpeed: 0.09,       // How fast it loops naturally (0.1 is slow/idle)
-    drag: 0.95,           // Friction (0.95 = slides a bit; 0.90 = stops fast)
-    acceleration: 0.5     // How much speed to add per tap
+    baseSpeed: 0.09,      // Idle speed
+    drag: 0.95,           // Friction 
+    acceleration: 0.5     // Speed per tap
 };
+
 // --- GAME STATE ---
 let gameState = {
     gold: 0,
@@ -133,30 +134,26 @@ function updateUI() {
 
 // --- PHYSICS ENGINE (Loop) ---
 function gameLoop() {
-    // 1. Apply Friction to the velocity (Slow down the extra speed)
+    // 1. Apply Friction to the velocity
     gameState.velocity *= SPRITE_CONFIG.drag;
 
-    // If velocity is super low, just snap to 0 to stop calculation floating points
     if (gameState.velocity < 0.01) gameState.velocity = 0;
 
     // 2. Manage Idle vs Active State
-    // If we have speed (tapping), remove the gentle breathing animation
     if (gameState.velocity > 0.1) {
-        wrapperEl.classList.remove('idle-mode');
+        // Tapping mode
+        spriteEl.classList.remove('idle-mode'); // Apply to spriteEl directly for scale transform
     } else {
-        // If we are stopped, add the gentle breathing animation
-        wrapperEl.classList.add('idle-mode');
+        // Idle mode
+        spriteEl.classList.add('idle-mode');
     }
 
     // 3. Calculate Final Speed
-    // It is now Base Speed (Idle) + Velocity (Tapping)
-    // This ensures it ALWAYS loops, but speeds up when you tap.
     let currentSpeed = SPRITE_CONFIG.baseSpeed + gameState.velocity;
 
     // 4. Advance Frames
     gameState.currentFrame += currentSpeed;
     
-    // Loop the frames
     if (gameState.currentFrame >= SPRITE_CONFIG.totalFrames) {
         gameState.currentFrame = 0;
     }
@@ -167,16 +164,14 @@ function gameLoop() {
     
     spriteEl.style.backgroundPosition = `${posX}px 0px`;
 
-    // 5. Visual "Rumble" (Only happen if tapping fast)
+    // 5. Visual "Rumble"
     if (gameState.velocity > 2) {
         let shake = (Math.random() - 0.5) * 10;
-        // We override the transform, so the 'idle' animation doesn't fight it
-        wrapperEl.style.transform = `rotate(${shake}deg) scale(1.1)`;
-    } else if (gameState.velocity > 0.1) {
-        // Reset shake if slowing down but not yet idle
-        wrapperEl.style.transform = `rotate(0deg) scale(1.0)`;
-    } 
-    // Note: If velocity is < 0.1, the CSS .idle-mode class takes over the transform!
+        // Apply rotate to wrapper, so it doesn't conflict with scaling on the sprite
+        wrapperEl.style.transform = `rotate(${shake}deg)`;
+    } else {
+        wrapperEl.style.transform = `rotate(0deg)`;
+    }
 
     requestAnimationFrame(gameLoop);
 }
@@ -185,10 +180,9 @@ function gameLoop() {
 // --- VISUAL FX ---
 
 function createPulseEffect() {
-    // Remove class to reset animation, then add it back (trick to restart CSS anim)
-    wrapperEl.classList.remove('pulse-anim');
-    void wrapperEl.offsetWidth; // Trigger reflow
-    wrapperEl.classList.add('pulse-anim');
+    spriteEl.classList.remove('pulse-anim');
+    void spriteEl.offsetWidth; 
+    spriteEl.classList.add('pulse-anim');
 }
 
 function screenShake() {
@@ -204,7 +198,6 @@ function spawnFloatingText(x, y) {
     el.style.top = `${y - 50}px`;
     el.style.color = "gold";
     
-    // Add randomness to position
     const randX = (Math.random() - 0.5) * 40;
     el.style.transform = `translateX(${randX}px)`;
     
@@ -220,7 +213,6 @@ function createComicText() {
     el.className = 'float-text';
     el.innerText = COMIC_WORDS[Math.floor(Math.random() * COMIC_WORDS.length)];
     
-    // Random position near center
     const x = (window.innerWidth / 2) + (Math.random() - 0.5) * 200;
     const y = (window.innerHeight / 2) + (Math.random() - 0.5) * 200;
     
@@ -235,11 +227,9 @@ function createComicText() {
 }
 
 function spawnComicParticle(x, y) {
-    // Create 'speed lines' or shapes
     const colors = ['#ff0055', '#00e5ff', '#ffeb3b'];
     const el = document.createElement('div');
     
-    // Random visual properties
     const size = Math.random() * 20 + 10;
     const color = colors[Math.floor(Math.random() * colors.length)];
     const angle = Math.random() * 360;
@@ -250,14 +240,13 @@ function spawnComicParticle(x, y) {
     el.style.width = `${size}px`;
     el.style.height = `${size}px`;
     el.style.backgroundColor = color;
-    el.style.clipPath = "polygon(50% 0%, 0% 100%, 100% 100%)"; // Triangle
+    el.style.clipPath = "polygon(50% 0%, 0% 100%, 100% 100%)"; 
     el.style.pointerEvents = 'none';
     el.style.transform = `rotate(${angle}deg)`;
     el.style.transition = "all 0.5s ease-out";
     
     fxLayer.appendChild(el);
     
-    // Trigger animation next frame
     requestAnimationFrame(() => {
         const moveDist = 100;
         const rad = angle * (Math.PI / 180);
@@ -271,10 +260,39 @@ function spawnComicParticle(x, y) {
     setTimeout(() => el.remove(), 500);
 }
 
+// --- AUTO-SCALER (Responsive Fix) ---
+function resizeGame() {
+    const headerHeight = 90; // The height of UI bar + padding
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    
+    // Calculate available space for the sprite
+    const availableWidth = screenWidth; 
+    const availableHeight = screenHeight - headerHeight;
+
+    const baseW = SPRITE_CONFIG.frameWidth;
+    const baseH = SPRITE_CONFIG.frameHeight;
+
+    // Calculate how much we need to scale to fit
+    const scaleX = availableWidth / baseW;
+    const scaleY = availableHeight / baseH;
+
+    // Pick the smaller scale so it doesn't cut off
+    let finalScale = Math.min(scaleX, scaleY) * 0.90; // 90% fill to leave breathing room
+
+    // Apply the zoom
+    spriteEl.style.transform = `scale(${finalScale})`;
+    
+    // Shift it down slightly to center in the empty space
+    spriteEl.style.marginTop = `${headerHeight / 2}px`;
+}
+
 // --- INITIALIZATION ---
-// Listen for inputs
 spriteEl.addEventListener('mousedown', handleTap);
 spriteEl.addEventListener('touchstart', handleTap, {passive: false});
 
-// Start the loop
+// Run resize immediately and on window change
+resizeGame();
+window.addEventListener('resize', resizeGame);
+
 gameLoop();
