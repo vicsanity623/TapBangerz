@@ -1,7 +1,11 @@
 const CACHE_NAME = 'tapB-v1.0.0';
 const ASSETS_TO_CACHE = [
   './',
-  './index.html'
+  './index.html',
+  './manifest.json',
+  './IMG_0061.PNG',
+  './IMG_0062.PNG',
+  './sprite.PNG'
 ];
 
 // Install Event: Cache files
