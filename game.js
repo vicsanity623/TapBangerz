@@ -1,16 +1,12 @@
-/* 
-   *** CONFIGURATION *** 
-   Update these numbers to match your specific Sprite Sheet!
-*/
 const SPRITE_CONFIG = {
-    frameWidth: 200,      // Width of ONE single frame in pixels
-    frameHeight: 200,     // Height of the image in pixels
-    totalFrames: 10,      // Total number of frames in the row
-    baseSpeed: 0.1,       // How fast it plays naturally
-    drag: 0.94,           // Friction (lower = stops faster)
-    acceleration: 0.8     // How much speed is added per tap
+    frameWidth: 320,      // Width of ONE single frame
+    frameHeight: 468,     // Height of the image 
+    totalFrames: 10,      // Total count (3200px width / 320px frame = 10 frames)
+    
+    baseSpeed: 0.1,       // How fast it loops naturally (0.1 is slow/idle)
+    drag: 0.95,           // Friction (0.95 = slides a bit; 0.90 = stops fast)
+    acceleration: 0.5     // How much speed to add per tap
 };
-
 // --- GAME STATE ---
 let gameState = {
     gold: 0,
