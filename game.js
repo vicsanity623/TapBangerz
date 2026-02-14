@@ -99,16 +99,16 @@ function handleTap(e) {
 function gameLoop() {
     // 1. Calculate Intensity (0.0 = Chill, 1.0 = Chaos)
     // Intensity caps at Combo 50
-    let targetIntensity = Math.min(state.combo, 50) / 50;
+    let targetIntensity = Math.min(state.combo, 100) / 100;
     // Smoothly lerp intensity
-    state.intensity += (targetIntensity - state.intensity) * 0.1;
+    state.intensity += (targetIntensity - state.intensity) * 0.09;
 
     // 2. Apply Physics
     state.velocity *= CONFIG.drag;
     if (state.velocity < 0.01) state.velocity = 0;
 
     // 3. Animation Frames
-    let effectiveSpeed = CONFIG.baseSpeed + state.velocity + (state.intensity * 0.2);
+    let effectiveSpeed = CONFIG.baseSpeed + state.velocity + (state.intensity * 0.1);
     state.currentFrame += effectiveSpeed;
     if (state.currentFrame >= CONFIG.totalFrames) state.currentFrame = 0;
 
