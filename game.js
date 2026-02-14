@@ -1,15 +1,11 @@
-/* 
-   *** CONFIGURATION *** 
-*/
 const SPRITE_CONFIG = {
-    frameWidth: 400,      // Width of ONE single frame
-    frameHeight: 575,     // Height of the image
-    totalFrames: 30,      // Total count (12000 / 400 = 30)
+    frameWidth: 320,      // Width of ONE single frame
+    frameHeight: 468,     // Height of the image 
+    totalFrames: 10,      // Total count (3200px width / 320px frame = 10 frames)
     
-    // Animation Settings
-    baseSpeed: 0.25,      // Idle speed (higher = faster idle loop)
-    drag: 0.95,           // Friction
-    acceleration: 0.5     // Speed added per tap
+    baseSpeed: 0.09,       // How fast it loops naturally (0.1 is slow/idle)
+    drag: 0.95,           // Friction (0.95 = slides a bit; 0.90 = stops fast)
+    acceleration: 0.5     // How much speed to add per tap
 };
 // --- GAME STATE ---
 let gameState = {
