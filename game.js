@@ -4,6 +4,7 @@
 
 const CONFIG = {
     frameWidth: 480,
+    frameHeight: 690,
     totalFrames: 9,
     baseSpeed: 0.1,
     drag: 0.94,           // Friction
