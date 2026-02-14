@@ -133,35 +133,50 @@ function updateUI() {
 
 // --- PHYSICS ENGINE (Loop) ---
 function gameLoop() {
-    // 1. Apply Friction (Slow down)
+    // 1. Apply Friction to the velocity (Slow down the extra speed)
     gameState.velocity *= SPRITE_CONFIG.drag;
-    if (gameState.velocity < 0.05) gameState.velocity = 0;
 
-    // 2. Advance Frames
-    // Only play if there is velocity (tap momentum)
-    if (gameState.velocity > 0) {
-        gameState.currentFrame += (SPRITE_CONFIG.baseSpeed + gameState.velocity);
-        
-        // Loop the frames
-        if (gameState.currentFrame >= SPRITE_CONFIG.totalFrames) {
-            gameState.currentFrame = 0;
-        }
+    // If velocity is super low, just snap to 0 to stop calculation floating points
+    if (gameState.velocity < 0.01) gameState.velocity = 0;
 
-        // Calculate Pixel Position
-        let frameIndex = Math.floor(gameState.currentFrame);
-        let posX = -(frameIndex * SPRITE_CONFIG.frameWidth);
-        
-        spriteEl.style.backgroundPosition = `${posX}px 0px`;
+    // 2. Manage Idle vs Active State
+    // If we have speed (tapping), remove the gentle breathing animation
+    if (gameState.velocity > 0.1) {
+        wrapperEl.classList.remove('idle-mode');
+    } else {
+        // If we are stopped, add the gentle breathing animation
+        wrapperEl.classList.add('idle-mode');
     }
 
-    // 3. Visual "Rumble" based on speed
-    // If spinning fast, rotate the button slightly for chaos
+    // 3. Calculate Final Speed
+    // It is now Base Speed (Idle) + Velocity (Tapping)
+    // This ensures it ALWAYS loops, but speeds up when you tap.
+    let currentSpeed = SPRITE_CONFIG.baseSpeed + gameState.velocity;
+
+    // 4. Advance Frames
+    gameState.currentFrame += currentSpeed;
+    
+    // Loop the frames
+    if (gameState.currentFrame >= SPRITE_CONFIG.totalFrames) {
+        gameState.currentFrame = 0;
+    }
+
+    // Calculate Pixel Position
+    let frameIndex = Math.floor(gameState.currentFrame);
+    let posX = -(frameIndex * SPRITE_CONFIG.frameWidth);
+    
+    spriteEl.style.backgroundPosition = `${posX}px 0px`;
+
+    // 5. Visual "Rumble" (Only happen if tapping fast)
     if (gameState.velocity > 2) {
         let shake = (Math.random() - 0.5) * 10;
+        // We override the transform, so the 'idle' animation doesn't fight it
         wrapperEl.style.transform = `rotate(${shake}deg) scale(1.1)`;
-    } else {
+    } else if (gameState.velocity > 0.1) {
+        // Reset shake if slowing down but not yet idle
         wrapperEl.style.transform = `rotate(0deg) scale(1.0)`;
-    }
+    } 
+    // Note: If velocity is < 0.1, the CSS .idle-mode class takes over the transform!
 
     requestAnimationFrame(gameLoop);
 }
