@@ -134,8 +134,8 @@ function applyProceduralAnimation() {
     state.pulsePhase += pulseSpeed;
     
     // Sine wave for smooth scaling
-    let scaleWave = Math.sin(state.pulsePhase) * (0.05 + (state.intensity * 0.1)); 
-    let baseScale = 0.9 + (state.intensity * 0.2); // Grows bigger with combo
+    let scaleWave = Math.sin(state.pulsePhase) * (0.02 + (state.intensity * 0.08)); 
+    let baseScale = 0.9 + (state.intensity * 0.09); // Grows bigger with combo
     
     let finalScale = baseScale + scaleWave;
 
