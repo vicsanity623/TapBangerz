@@ -5,7 +5,7 @@ const ASSETS_TO_CACHE = [
   './manifest.json',
   './IMG_0061.PNG',
   './IMG_0062.PNG',
-  './sprite.PNG'
+  './bangerz.PNG'
 ];
 
 // Install Event: Cache files
