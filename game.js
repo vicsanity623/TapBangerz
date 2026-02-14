@@ -3,18 +3,20 @@
    ========================================= */
 
 const CONFIG = {
-    frameWidth: 480,
+    // ✅ CORRECTED DIMENSIONS
+    frameWidth: 480,      
     frameHeight: 690,
-    totalFrames: 9,
+    totalFrames: 9,       
+    
     baseSpeed: 0.1,
-    drag: 0.94,           // Friction
-    acceleration: 0.6,    // Speed per tap
+    drag: 0.94,           
+    acceleration: 0.6,    
     maxVelocity: 4.0,
     
     // JUICE SETTINGS
-    comboDecay: 2000,     // ms before combo resets
-    particleCount: 8,     // Particles per tap
-    gravity: 0.8          // Gravity for particles
+    comboDecay: 2000,     
+    particleCount: 8,     
+    gravity: 0.8          
 };
 
 // --- GAME STATE ---
@@ -23,18 +25,13 @@ let state = {
     level: 1,
     xp: 0,
     xpToNext: 100,
-    
     combo: 0,
     maxCombo: 0,
     comboTimer: null,
-    
-    // Physics
     currentFrame: 0,
     velocity: 0,
-    
-    // Visuals
-    intensity: 0,         // 0.0 to 1.0 (Calculated based on combo)
-    pulsePhase: 0         // For the rhythmic throb
+    intensity: 0,         
+    pulsePhase: 0         
 };
 
 // --- DOM CACHE ---
@@ -53,9 +50,23 @@ const dom = {
     }
 };
 
-// Initial Setup
-dom.sprite.style.width = `${CONFIG.frameWidth}px`;
+/* =========================================
+   INITIALIZATION (FIXED)
+   ========================================= */
 
+// 1. Set the display size of ONE frame
+dom.sprite.style.width = `${CONFIG.frameWidth}px`;
+dom.sprite.style.height = `${CONFIG.frameHeight}px`;
+
+// 2. FORCE the background image to match our math
+//    Total Width = Frame Width * Number of Frames
+//    This ensures scaling works even if the PNG is a different resolution
+const sheetWidth = CONFIG.frameWidth * CONFIG.totalFrames;
+dom.sprite.style.backgroundSize = `${sheetWidth}px ${CONFIG.frameHeight}px`;
+
+// 3. Scale down the wrapper to fit mobile screens
+//    480x690 is huge, so we shrink the container visually without breaking the sprite math
+dom.wrapper.style.transform = "scale(0.5)"; // Adjust this (0.5 to 0.8) to fit your screen
 /* =========================================
    CORE INPUT & LOOP
    ========================================= */
