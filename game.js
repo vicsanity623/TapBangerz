@@ -11,11 +11,11 @@ const CONFIG = {
     baseSpeed: 0.1,
     drag: 0.94,           
     acceleration: 0.6,    
-    maxVelocity: 4.0,
+    maxVelocity: 2.0,
     
     // JUICE SETTINGS
     comboDecay: 2000,     
-    particleCount: 8,     
+    particleCount: 3,     
     gravity: 0.8          
 };
 
@@ -130,12 +130,12 @@ function gameLoop() {
 function applyProceduralAnimation() {
     // A. Rhythmic Pulse (Heartbeat)
     // Speed of pulse increases with intensity
-    let pulseSpeed = 0.1 + (state.intensity * 0.4);
+    let pulseSpeed = 0.1 + (state.intensity * 0.2);
     state.pulsePhase += pulseSpeed;
     
     // Sine wave for smooth scaling
     let scaleWave = Math.sin(state.pulsePhase) * (0.05 + (state.intensity * 0.1)); 
-    let baseScale = 0.8 + (state.intensity * 0.3); // Grows bigger with combo
+    let baseScale = 0.9 + (state.intensity * 0.2); // Grows bigger with combo
     
     let finalScale = baseScale + scaleWave;
 
@@ -146,10 +146,10 @@ function applyProceduralAnimation() {
     let rotation = 0;
 
     if (state.intensity > 0.1) {
-        let shakePower = state.intensity * 10; // Max 10px shake
+        let shakePower = state.intensity * 5; // Max 10px shake
         shakeX = (Math.random() - 0.5) * shakePower;
         shakeY = (Math.random() - 0.5) * shakePower;
-        rotation = (Math.random() - 0.5) * (state.intensity * 15);
+        rotation = (Math.random() - 0.5) * (state.intensity * 5);
     }
 
     // Apply Transform
@@ -177,7 +177,7 @@ function triggerTapFX(x, y) {
     }
 
     // 4. Screen Shake (On critical hits or high combo)
-    if (state.combo > 20 || Math.random() > 0.8) {
+    if (state.combo > 20 || Math.random() > 0.4) {
         triggerScreenShake(state.intensity);
     }
 }
@@ -190,7 +190,7 @@ function spawnParticles(x, y) {
     const colors = ['#fff', '#00e5ff', '#ff0055', '#ffeb3b'];
     
     // Scale particle count based on intensity
-    let count = CONFIG.particleCount + Math.floor(state.intensity * 10);
+    let count = CONFIG.particleCount + Math.floor(state.intensity * 2);
 
     for (let i = 0; i < count; i++) {
         const p = document.createElement('div');
@@ -349,7 +349,7 @@ function levelUp() {
     dom.ui.level.innerText = state.level;
 
     // Big visual explosion
-    for(let i=0; i<30; i++) {
+    for(let i=0; i<10; i++) {
         setTimeout(() => {
             spawnParticles(window.innerWidth/2, window.innerHeight/2);
         }, i * 20);
