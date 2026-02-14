@@ -3,7 +3,7 @@ const SPRITE_CONFIG = {
     frameHeight: 468,     // Height of the image 
     totalFrames: 10,      // Total count (3200px width / 320px frame = 10 frames)
     
-    baseSpeed: 0.19,       // How fast it loops naturally (0.1 is slow/idle)
+    baseSpeed: 0.09,       // How fast it loops naturally (0.1 is slow/idle)
     drag: 0.95,           // Friction (0.95 = slides a bit; 0.90 = stops fast)
     acceleration: 0.5     // How much speed to add per tap
 };
