@@ -107,7 +107,7 @@ body {
     /* DEFAULT SIZE - JS WILL OVERRIDE THIS */
     width: 200px; 
     height: 200px;
-    background-image: url('bangerz.PNG'); /* YOUR IMAGE NAME HERE */
+    background-image: url('sprite.PNG'); /* YOUR IMAGE NAME HERE */
     background-repeat: no-repeat;
     background-position: 0 0;
     cursor: pointer;
