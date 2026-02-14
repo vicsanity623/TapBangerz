@@ -2,6 +2,7 @@ const CACHE_NAME = 'tapB-v1.0.3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  './game.js',
   './manifest.json',
   './IMG_0061.PNG',
   './IMG_0062.PNG',
