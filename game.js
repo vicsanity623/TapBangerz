@@ -1,7 +1,7 @@
 const SPRITE_CONFIG = {
-    frameWidth: 320,      // Width of ONE single frame
-    frameHeight: 460,     // Height of the image 
-    totalFrames: 9,      // Total count (3200px width / 320px frame = 10 frames)
+    frameWidth: 480,      // Width of ONE single frame
+    frameHeight: 690,     // Height of the image 
+    totalFrames: 9,      // Total count
     
     baseSpeed: 0.09,       // How fast it loops naturally (0.1 is slow/idle)
     drag: 0.95,           // Friction (0.95 = slides a bit; 0.90 = stops fast)
