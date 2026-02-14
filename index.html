@@ -14,7 +14,7 @@
         <!-- Background Speed Lines Effect -->
         <div class="speed-lines"></div>
 
-        <!-- UI Header -->
+        <!-- UI Header (Z-Index 100) -->
         <div class="ui-header">
             <div class="stat-box">
                 <span class="label">LEVEL</span>
@@ -30,21 +30,21 @@
             </div>
         </div>
 
-        <!-- Combo Counter (Hidden until active) -->
+        <!-- Combo Counter (Z-Index 60) -->
         <div id="combo-container" class="hidden">
             <div id="combo-count">0</div>
             <div id="combo-label">COMBO!</div>
         </div>
 
-        <!-- The Main Sprite Button -->
+        <!-- The Main Sprite Button (Z-Index 1) -->
         <div class="sprite-wrapper">
             <div id="action-sprite"></div>
         </div>
 
-        <!-- Instructional Text -->
+        <!-- Instructional Text (Z-Index 5) -->
         <p class="hint-text">TAP FAST TO CHARGE!</p>
 
-        <!-- Container for floating particles -->
+        <!-- Container for floating particles (Z-Index 50) -->
         <div id="fx-layer"></div>
     </div>
 
